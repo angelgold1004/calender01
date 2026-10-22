@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>아이돌 치어업 캘린더</title>
+  <style>
+    :root {
+      --primary-color: #ff6b9d;
+      --primary-light: #ffeef4;
+      --secondary-color: #845ec2;
+      --text-main: #2d3436;
+      --text-muted: #636e72;
+      --bg-color: #f7f9fc;
+      --card-bg: #ffffff;
+      --border-color: #edf2f7;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 카드 기본 스타일 */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(149, 157, 165, 0.08);
+    }
+
+    /* 아이돌 응원 배너 */
+    .cheer-card {
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .idol-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      font-size: 38px;
+    }
+
+    .cheer-content {
+      flex: 1;
+      z-index: 1;
+    }
+
+    .idol-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.9;
+    }
+
+    .cheer-bubble {
+      margin-top: 4px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.4;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(4px);
+      padding: 6px 12px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+
+    .cheer-btn {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      border: none;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--primary-color);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    /* 달력 컨트롤러 */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .calendar-header h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .nav-btn {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 달력 그리드 */
+    .weekdays-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .weekdays-grid div:first-child { color: #ff5252; }
+    .weekdays-grid div:last-child { color: #448aff; }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .day-cell {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s ease;
+    }
+
+    .day-cell.other-month {
+      color: #ccc;
+    }
+
+    .day-cell.today {
+      border: 1.5px solid var(--primary-color);
+    }
+
+    .day-cell.selected {
+      background-color: var(--primary-color);
+      color: #fff !important;
+      font-weight: bold;
+    }
+
+    /* 할 일 개수 인디케이터 도트 */
+    .todo-indicator {
+      width: 5px;
+      height: 5px;
+      background: var(--secondary-color);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 5px;
+    }
+    .day-cell.selected .todo-indicator {
+      background: #ffffff;
+    }
+
+    /* 할 일(To-Do) 영역 */
+    .todo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .todo-header h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .todo-input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .todo-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .todo-input:focus {
+      border-color: var(--primary-color);
+    }
+
+    .todo-add-btn {
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      padding: 0 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .todo-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--bg-color);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+
+    .todo-item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: #ff5252;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 4px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 18px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- 1. K-pop 아이돌 치어업 배너 -->
+    <div class="card cheer-card">
+      <div class="idol-avatar" id="idolEmoji">🎤</div>
+      <div class="cheer-content">
+        <div class="idol-name" id="idolName">K-POP IDOL</div>
+        <div class="cheer-bubble" id="idolMessage">오늘도 힘차게 파이팅! 💖</div>
+      </div>
+      <button class="cheer-btn" id="refreshCheerBtn">응원받기 ✨</button>
+    </div>
+
+    <!-- 2. 달력 영역 -->
+    <div class="card calendar-card">
+      <div class="calendar-header">
+        <button class="nav-btn" id="prevMonthBtn">&lt;</button>
+        <h2 id="currentYearMonth">2026년 10월</h2>
+        <button class="nav-btn" id="nextMonthBtn">&gt;</button>
+      </div>
+
+      <div class="weekdays-grid">
+        <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+      </div>
+
+      <div class="days-grid" id="calendarDays">
+        <!-- 자바스크립트로 날짜 셀 생성 -->
+      </div>
+    </div>
+
+    <!-- 3. 할 일 목록 영역 -->
+    <div class="card todo-card">
+      <div class="todo-header">
+        <h3 id="selectedDateTitle">오늘의 할 일</h3>
+      </div>
+
+      <div class="todo-input-group">
+        <input type="text" id="todoInput" class="todo-input" placeholder="새로운 할 일을 입력하세요..." />
+        <button id="addTodoBtn" class="todo-add-btn">추가</button>
+      </div>
+
+      <ul class="todo-list" id="todoList">
+        <!-- 할 일 목록 동적 렌더링 -->
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+     * 1. 월별 아이돌 데이터셋 (1월 ~ 12월)
+     * ============================================================ */
+    const monthlyIdolData = {
+      0:  { name: "리더 민서", emoji: "🐰", quotes: ["새해의 시작이야! 넌 할 수 있어!", "첫 단추를 예쁘게 끼워보자! 파이팅 ✨"] },
+      1:  { name: "메인보컬 하은", emoji: "🐱", quotes: ["추운 2월도 따뜻한 열정으로 녹여버리자!", "포기하지 않는 모습이 최고야 💖"] },
+      2:  { name: "댄싱머신 지호", emoji: "🐹", quotes: ["봄바람 타고 힘차게 달려보는 거야!", "새 학기, 새로운 시작 파이팅! 🌸"] },
+      3:  { name: "비주얼 도윤", emoji: "🦊", quotes: ["꽃처럼 활짝 피어날 너의 하루를 응원해!", "목표를 향해 스텝 바이 스텝! 🌷"] },
+      4:  { name: "랩퍼 서준", emoji: "🐶", quotes: ["푸른 5월처럼 시원하게 해내보자!", "네 페이스대로 가면 돼, 걱정 마! 🚀"] },
+      5:  { name: "센터 예원", emoji: "🐻", quotes: ["벌써 한 해의 절반! 지금까지 정말 잘해왔어!", "지칠 땐 잠깐 쉬어가도 괜찮아 🍃"] },
+      6:  { name: "서브보컬 유진", emoji: "🦄", quotes: ["한여름 태양보다 뜨거운 열정! 아자아자!", "시원한 물 챙겨 마시며 파이팅 ☀️"] },
+      7:  { name: "올라운더 현우", emoji: "🦁", quotes: ["오늘의 땀방울이 내일의 무대를 만들어!", "언제나 내가 옆에서 응원하고 있어 🌟"] },
+      8:  { name: "메인댄서 채원", emoji: "🐼", quotes: ["선선한 가을바람과 함께 집중해볼까?", "꾸준히 하는 네가 진정한 챔피언이야 🍂"] },
+      9:  { name: "서브래퍼 지민", emoji: "🐥", quotes: ["10월도 반짝반짝 빛나는 너의 계절!", "오늘 일정 완벽하게 클리어해보자! 🎃"] },
+      10: { name: "프로듀서 시우", emoji: "🐯", quotes: ["결실의 11월, 지금까지 쌓아온 걸 믿어!", "마지막 스퍼트까지 화이팅! 🍁"] },
+      11: { name: "막내 온탑 수아", emoji: "🐧", quotes: ["올해도 너무 수고 많았어! 마지막까지 멋지게!", "행복 가득한 연말 보내자 ❄️"] }
+    };
+
+    /* ============================================================
+     * 2. 상태 관리 (State)
+     * ============================================================ */
+    let currentDate = new Date(); // 달력에서 보고 있는 기준 날짜
+    let selectedDateStr = formatDateKey(new Date()); // 현재 선택된 날짜 (YYYY-MM-DD)
+
+    // 로컬 스토리지에서 To-Do 불러오기
+    let todos = JSON.parse(localStorage.getItem('idol_calendar_todos')) || {};
+
+    function formatDateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function saveTodos() {
+      localStorage.setItem('idol_calendar_todos', JSON.stringify(todos));
+    }
+
+    /* ============================================================
+     * 3. DOM 요소 참조
+     * ============================================================ */
+    const idolEmojiEl = document.getElementById('idolEmoji');
+    const idolNameEl = document.getElementById('idolName');
+    const idolMessageEl = document.getElementById('idolMessage');
+    const refreshCheerBtn = document.getElementById('refreshCheerBtn');
+
+    const currentYearMonthEl = document.getElementById('currentYearMonth');
+    const calendarDaysEl = document.getElementById('calendarDays');
+    const prevMonthBtn = document.getElementById('prevMonthBtn');
+    const nextMonthBtn = document.getElementById('nextMonthBtn');
+
+    const selectedDateTitleEl = document.getElementById('selectedDateTitle');
+    const todoInputEl = document.getElementById('todoInput');
+    const addTodoBtn = document.getElementById('addTodoBtn');
+    const todoListEl = document.getElementById('todoList');
+
+    /* ============================================================
+     * 4. 아이돌 배너 업데이트
+     * ============================================================ */
+    function updateIdolBanner(monthIndex) {
+      const idol = monthlyIdolData[monthIndex];
+      idolEmojiEl.textContent = idol.emoji;
+      idolNameEl.textContent = idol.name;
+      
+      // 랜덤 응원 문구 선택
+      const randomQuote = idol.quotes[Math.floor(Math.random() * idol.quotes.length)];
+      idolMessageEl.textContent = randomQuote;
+    }
+
+    refreshCheerBtn.addEventListener('click', () => {
+      updateIdolBanner(currentDate.getMonth());
+    });
+
+    /* ============================================================
+     * 5. 달력 렌더링
+     * ============================================================ */
+    function renderCalendar() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      currentYearMonthEl.textContent = `${year}년 ${month + 1}월`;
+      updateIdolBanner(month);
+
+      calendarDaysEl.innerHTML = '';
+
+      // 이번 달의 첫째 날 요일, 마지막 날짜
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+
+      // 지난 달의 마지막 날짜
+      const prevLastDay = new Date(year, month, 0).getDate();
+
+      const todayStr = formatDateKey(new Date());
+
+      // 1) 이전 달 날짜 채우기
+      for (let i = firstDayIndex; i > 0; i--) {
+        const dayNum = prevLastDay - i + 1;
+        const cell = document.createElement('div');
+        cell.className = 'day-cell other-month';
+        cell.textContent = dayNum;
+        calendarDaysEl.appendChild(cell);
+      }
+
+      // 2) 이번 달 날짜 채우기
+      for (let day = 1; day <= lastDay; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        cell.textContent = day;
+
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        if (dateKey === todayStr) {
+          cell.classList.add('today');
+        }
+        if (dateKey === selectedDateStr) {
+          cell.classList.add('selected');
+        }
+
+        // 해당 날짜에 할 일이 있으면 도트 표시
+        if (todos[dateKey] && todos[dateKey].length > 0) {
+          const dot = document.createElement('div');
+          dot.className = 'todo-indicator';
+          cell.appendChild(dot);
+        }
+
+        cell.addEventListener('click', () => {
+          selectedDateStr = dateKey;
+          renderCalendar();
+          renderTodos();
+        });
+
+        calendarDaysEl.appendChild(cell);
+      }
+    }
+
+    // 이전 달 / 다음 달 버튼 이벤트
+    prevMonthBtn.addEventListener('click', () => {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    nextMonthBtn.addEventListener('click', () => {
+      currentDate.setMonth(currentDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    /* ============================================================
+     * 6. 할 일(To-Do) 관리 및 렌더링
+     * ============================================================ */
+    function renderTodos() {
+      const [y, m, d] = selectedDateStr.split('-');
+      selectedDateTitleEl.textContent = `${Number(m)}월 ${Number(d)}일의 목표 & 할 일`;
+
+      todoListEl.innerHTML = '';
+      const currentTodos = todos[selectedDateStr] || [];
+
+      if (currentTodos.length === 0) {
+        todoListEl.innerHTML = '<li class="empty-state">등록된 할 일이 없어요. 새로운 목표를 세워보세요! ✨</li>';
+        return;
+      }
+
+      currentTodos.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.className = `todo-item ${item.completed ? 'completed' : ''}`;
+
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'todo-item-left';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.completed;
+        checkbox.addEventListener('change', () => {
+          item.completed = checkbox.checked;
+          saveTodos();
+          renderTodos();
+        });
+
+        const span = document.createElement('span');
+        span.className = 'todo-text';
+        span.textContent = item.text;
+
+        leftDiv.appendChild(checkbox);
+        leftDiv.appendChild(span);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.textContent = '삭제';
+        delBtn.addEventListener('click', () => {
+          currentTodos.splice(index, 1);
+          if (currentTodos.length === 0) {
+            delete todos[selectedDateStr];
+          }
+          saveTodos();
+          renderTodos();
+          renderCalendar(); // 달력의 인디케이터 도트 갱신
+        });
+
+        li.appendChild(leftDiv);
+        li.appendChild(delBtn);
+        todoListEl.appendChild(li);
+      });
+    }
+
+    function handleAddTodo() {
+      const text = todoInputEl.value.trim();
+      if (!text) return;
+
+      if (!todos[selectedDateStr]) {
+        todos[selectedDateStr] = [];
+      }
+
+      todos[selectedDateStr].push({ text: text, completed: false });
+      saveTodos();
+      todoInputEl.value = '';
+      
+      renderTodos();
+      renderCalendar(); // 달력에 할 일 도트 표시 갱신
+    }
+
+    addTodoBtn.addEventListener('click', handleAddTodo);
+    todoInputEl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleAddTodo();
+    });
+
+    /* ============================================================
+     * 초기 실행
+     * ============================================================ */
+    renderCalendar();
+    renderTodos();
+  </script>
+</body>
+</html>
